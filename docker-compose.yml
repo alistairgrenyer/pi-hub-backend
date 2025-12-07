@@ -1,0 +1,111 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-pihub}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  hub-api:
+    build: .
+    command: api
+    volumes:
+      - .:/app
+      - inbox_data:/data/inbox
+      - vault_data:/data/vault
+      - model_data:/models
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-pihub}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-pihub}
+      - POSTGRES_HOST=db
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  transcriber-worker:
+    build: .
+    command: worker-transcriber
+    volumes:
+      - .:/app
+      - inbox_data:/data/inbox
+      - model_data:/models
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-pihub}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  model-init:
+    image: alpine:latest
+    volumes:
+      - model_data:/models
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        if [ ! -f /models/llama-2-7b-chat.Q4_K_M.gguf ]; then
+          echo "Downloading LLM model..."
+          apk add --no-cache wget
+          wget -O /models/llama-2-7b-chat.Q4_K_M.gguf https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf
+          echo "Model downloaded successfully!"
+        else
+          echo "Model already exists, skipping download."
+        fi
+
+  llm-worker:
+    build: .
+    command: worker-llm
+    volumes:
+      - .:/app
+      - model_data:/models
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-pihub}
+    depends_on:
+      db:
+        condition: service_healthy
+      model-init:
+        condition: service_completed_successfully
+
+  vault-writer:
+    build: .
+    command: worker-vault
+    volumes:
+      - .:/app
+      - vault_data:/data/vault
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-pihub}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - hub-api
+
+volumes:
+  db_data:
+  inbox_data:
+  vault_data:
+  model_data:
+  caddy_data:
+  caddy_config:
