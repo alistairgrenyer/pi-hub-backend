@@ -58,6 +58,7 @@ Analyze this transcript and extract:
 1. A concise summary (2-3 sentences)
 2. Action items as a list
 3. A short descriptive title
+4. Relevant tags (3-5 keywords)
 
 Transcript:
 {note.transcript[:3000]}
@@ -66,7 +67,8 @@ Respond ONLY with valid JSON in this exact format:
 {{
   "summary": "your summary here",
   "action_items": ["first action", "second action"],
-  "title": "your title here"
+  "title": "your title here",
+  "tags": ["tag1", "tag2", "tag3"]
 }}
 
 Do not include any text before or after the JSON. [/INST]"""
@@ -92,8 +94,14 @@ Do not include any text before or after the JSON. [/INST]"""
                     
                     note.summary = data.get("summary", "")
                     note.action_items = data.get("action_items", [])
-                    if not note.title: # Only update title if missing
+                    
+                    # Only update title if missing
+                    if not note.title:
                         note.title = data.get("title", "Untitled Note")
+                    
+                    # Only update tags if missing or empty
+                    if not note.tags:
+                        note.tags = data.get("tags", [])
                 else:
                     note.summary = text_response
                     note.action_items = []
