@@ -102,4 +102,4 @@ volumes:
 
 networks:
   proxy-net:
-    external: true
+    driver: bridge

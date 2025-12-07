@@ -10,7 +10,7 @@ A production-shaped backend service for ingesting audio notes, processing them (
     - **Summarization**: Uses `llama-cpp-python` to generate summaries, action items, and titles.
     - **Vault Writer**: Writes processed notes as Markdown files to a vault directory.
 - **API**: FastAPI-based REST API.
-- **Infrastructure**: Docker Compose, PostgreSQL, Caddy Reverse Proxy.
+- **Infrastructure**: Docker Compose, PostgreSQL.
 
 ## Tech Stack
 
@@ -47,18 +47,30 @@ A production-shaped backend service for ingesting audio notes, processing them (
     *Note: `faster-whisper` auto-downloads models to cache, but you can map a volume to persist them.*
 
 4.  **Run with Docker Compose**:
+    
+    **For Development** (creates local proxy-net network):
     ```bash
+    docker-compose -f docker-compose.dev.yml up --build
+    ```
+    
+    **For Production** (requires external proxy-net network):
+    ```bash
+    # Ensure proxy-net network exists first
+    docker network create proxy-net
+    
+    # Then start the services
     docker-compose up --build
     ```
+
 
 ### Usage
 
 **API Documentation**:
-Once running, visit `http://localhost/docs` (via Caddy) or `http://localhost:8000/docs` (direct) to see the Swagger UI.
+Once running, visit `http://localhost:8000/docs` to see the Swagger UI.
 
 **Ingest Audio**:
 ```bash
-curl -X POST "http://localhost/api/notes/audio" \
+curl -X POST "http://localhost:8000/api/notes/audio" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
   -F "file=@/path/to/your/audio.wav"
