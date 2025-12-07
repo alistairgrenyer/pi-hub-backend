@@ -1,4 +1,3 @@
-import enum
 from datetime import datetime
 from typing import Optional, Any
 from sqlalchemy import String, Enum, DateTime, Text, JSON, func
@@ -7,13 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
 from infra.db import Base
-
-class NoteStatus(str, enum.Enum):
-    UPLOADED = "UPLOADED"
-    TRANSCRIBED = "TRANSCRIBED"
-    PROCESSED = "PROCESSED"
-    DONE = "DONE"
-    ERROR = "ERROR"
+from core.enums import NoteStatus
 
 class Note(Base):
     __tablename__ = "notes"

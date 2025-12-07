@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, List, Any, Dict
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict
-from core.models import NoteStatus
+from core.enums import NoteStatus
 
 class NoteBase(BaseModel):
     title: Optional[str] = None
