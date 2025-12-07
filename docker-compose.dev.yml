@@ -44,6 +44,7 @@ services:
       - .:/app
       - inbox_data:/data/inbox
       - model_data:/models
+      - huggingface_cache:/root/.cache/huggingface
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-pihub}
     depends_on:
@@ -98,6 +99,7 @@ volumes:
   inbox_data:
   vault_data:
   model_data:
+  huggingface_cache:
 
 
 networks:
